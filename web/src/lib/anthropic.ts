@@ -2,12 +2,10 @@ import Anthropic from "@anthropic-ai/sdk";
 
 const apiKey = process.env.ANTHROPIC_API_KEY;
 
-if (!apiKey) {
-  // We throw at import time so that missing config fails fast in dev.
-  throw new Error("ANTHROPIC_API_KEY is not set");
+if (!apiKey && process.env.LLM_PROVIDER === "anthropic") {
+  throw new Error("ANTHROPIC_API_KEY is not set but LLM_PROVIDER=anthropic");
 }
 
 export const anthropic = new Anthropic({
-  apiKey,
+  apiKey: apiKey || "not-configured",
 });
-

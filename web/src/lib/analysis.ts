@@ -1,4 +1,3 @@
-import { anthropic } from "@/lib/anthropic";
 import { prisma } from "@/lib/prisma";
 import { getClassifiedAdsForAccount, type ClassifiedAd } from "@/lib/meta-api";
 
@@ -143,34 +142,66 @@ Retorne JSON válido no formato abaixo, sem comentários e sem texto fora do JSO
 }
 `.trim();
 
-  const response = await anthropic.messages.create({
-    model: "claude-3-7-sonnet",
-    max_tokens: 4000,
-    temperature: 0.5,
-    system: systemPrompt,
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify(inputForModel),
-          },
-        ],
+  // LLM provider selection: Gemini (default/free) or Anthropic (premium)
+  const provider = process.env.LLM_PROVIDER || "gemini";
+  let raw: string;
+
+  if (provider === "anthropic") {
+    const { anthropic } = await import("@/lib/anthropic");
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 4000,
+      temperature: 0.5,
+      system: systemPrompt,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(inputForModel),
+            },
+          ],
+        },
+      ],
+    });
+
+    const content = response.content.find(
+      (c) => c.type === "text",
+    ) as { type: "text"; text: string } | undefined;
+
+    if (!content) {
+      throw new Error("Claude response did not include text content");
+    }
+    raw = content.text.trim();
+  } else {
+    const { geminiModel } = await import("@/lib/gemini");
+    const result = await geminiModel.generateContent({
+      contents: [
+        {
+          role: "user",
+          parts: [
+            {
+              text: `${systemPrompt}\n\n---\n\nDados dos criativos:\n${JSON.stringify(inputForModel)}`,
+            },
+          ],
+        },
+      ],
+      generationConfig: {
+        temperature: 0.5,
+        maxOutputTokens: 4000,
+        responseMimeType: "application/json",
       },
-    ],
-  });
+    });
 
-  const content = response.content.find(
-    (c) => c.type === "text",
-  ) as { type: "text"; text: string } | undefined;
-
-  if (!content) {
-    throw new Error("Claude response did not include text content");
+    const text = result.response.text();
+    if (!text) {
+      throw new Error("Gemini response did not include text content");
+    }
+    raw = text.trim();
   }
 
   let parsed: unknown;
-  const raw = content.text.trim();
   const jsonText = raw.startsWith("```")
     ? raw.replace(/^```json?/i, "").replace(/```$/, "").trim()
     : raw;

@@ -222,7 +222,7 @@ Retorne JSON válido no formato abaixo, sem comentários e sem texto fora do JSO
       adsCount: ads.length,
       winnersCount: winners.length,
       losersCount: losers.length,
-      resultJson: parsed as object,
+      resultJson: JSON.stringify(parsed),
     },
   });
 

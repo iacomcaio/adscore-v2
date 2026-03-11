@@ -21,5 +21,10 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  return NextResponse.json(analysis);
+  return NextResponse.json({
+    ...analysis,
+    resultJson: typeof analysis.resultJson === "string"
+      ? JSON.parse(analysis.resultJson)
+      : analysis.resultJson,
+  });
 }

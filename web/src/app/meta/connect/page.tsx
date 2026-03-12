@@ -100,6 +100,7 @@ export default async function MetaConnectPage() {
                     const accountId = formData.get("accountId");
                     if (typeof accountId === "string") {
                       await setSelectedAccount(user.id, accountId);
+                      redirect("/ads");
                     }
                   }}
                 >

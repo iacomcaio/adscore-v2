@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AdScore AI — Análise</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: #09090B; color: #FAFAFA; display: flex; min-height: 100vh; }
+
+  .sidebar { width: 240px; min-height: 100vh; background: #0F0F13; border-right: 1px solid #1C1C24; display: flex; flex-direction: column; padding: 20px 0; position: fixed; top: 0; left: 0; bottom: 0; }
+  .sidebar-logo { display: flex; align-items: center; gap: 10px; padding: 0 20px; margin-bottom: 32px; }
+  .sidebar-logo .icon { width: 32px; height: 32px; background: linear-gradient(135deg, #8B5CF6, #6D28D9); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; }
+  .sidebar-logo span { font-weight: 600; font-size: 15px; }
+  .sidebar-workspace { padding: 0 20px; margin-bottom: 24px; }
+  .sidebar-workspace .label { font-size: 11px; color: #52525B; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .sidebar-workspace .name { font-size: 13px; color: #A1A1AA; }
+  .sidebar-nav { flex: 1; }
+  .sidebar-nav a { display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: 13px; color: #71717A; text-decoration: none; border-left: 2px solid transparent; transition: all 0.15s; }
+  .sidebar-nav a:hover { color: #E4E4E7; background: #18181F; }
+  .sidebar-nav a.active { color: #FAFAFA; background: #18181F; border-left-color: #8B5CF6; }
+  .sidebar-nav a .emoji { font-size: 16px; width: 20px; text-align: center; }
+  .sidebar-bottom { padding: 0 20px; border-top: 1px solid #1C1C24; padding-top: 16px; }
+  .sidebar-bottom a { display: flex; align-items: center; gap: 10px; padding: 8px 0; font-size: 13px; color: #52525B; text-decoration: none; }
+
+  .main { flex: 1; margin-left: 240px; padding: 24px 32px; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .topbar h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.5px; }
+  .btn-primary { padding: 8px 16px; font-size: 13px; font-weight: 500; border: none; background: #8B5CF6; color: white; border-radius: 8px; cursor: pointer; font-family: inherit; }
+
+  .analysis-card {
+    background: #0F0F13; border: 1px solid #1C1C24; border-radius: 12px; padding: 24px;
+    margin-bottom: 16px; cursor: pointer; transition: all 0.2s;
+  }
+  .analysis-card:hover { border-color: #27272A; transform: translateY(-1px); }
+  .analysis-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .analysis-date { font-size: 15px; font-weight: 600; }
+  .analysis-meta { font-size: 12px; color: #52525B; }
+  .analysis-stats { display: flex; gap: 24px; margin-bottom: 12px; }
+  .analysis-stat { font-size: 13px; color: #A1A1AA; }
+  .analysis-stat strong { color: #FAFAFA; font-weight: 600; }
+  .analysis-stat .green { color: #10B981; }
+  .analysis-stat .red { color: #EF4444; }
+  .analysis-arrow { color: #8B5CF6; font-size: 13px; font-weight: 500; }
+
+  /* Detailed analysis view */
+  .section { background: #0F0F13; border: 1px solid #1C1C24; border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+  .section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+  .section-title { font-size: 16px; font-weight: 600; }
+  .section-icon { font-size: 20px; }
+
+  .pattern-list { list-style: none; }
+  .pattern-item { padding: 12px 0; border-bottom: 1px solid #1C1C24; display: flex; gap: 12px; align-items: start; }
+  .pattern-item:last-child { border-bottom: none; }
+  .pattern-num { width: 24px; height: 24px; background: rgba(139,92,246,0.15); color: #8B5CF6; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+  .pattern-text { font-size: 14px; color: #E4E4E7; line-height: 1.5; }
+  .pattern-evidence { font-size: 12px; color: #52525B; margin-top: 4px; font-style: italic; }
+
+  .rec-item { padding: 14px; background: #141418; border-radius: 8px; margin-bottom: 8px; display: flex; gap: 12px; align-items: start; }
+  .rec-priority { padding: 2px 8px; border-radius: 100px; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  .rec-priority.high { background: rgba(239,68,68,0.12); color: #EF4444; }
+  .rec-priority.mid { background: rgba(245,158,11,0.12); color: #F59E0B; }
+  .rec-priority.low { background: rgba(16,185,129,0.12); color: #10B981; }
+  .rec-text { font-size: 13px; color: #E4E4E7; line-height: 1.5; }
+  .rec-detail { font-size: 12px; color: #52525B; margin-top: 4px; }
+
+  .btn-secondary { padding: 10px 20px; font-size: 13px; font-weight: 500; border: 1px solid #27272A; background: transparent; color: #A1A1AA; border-radius: 8px; cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; gap: 8px; }
+  .btn-secondary:hover { border-color: #8B5CF6; color: #FAFAFA; }
+</style>
+</head>
+<body>
+  <nav class="sidebar">
+    <div class="sidebar-logo"><div class="icon">A</div><span>AdScore AI</span></div>
+    <div class="sidebar-workspace"><div class="label">Workspace</div><div class="name">Ronan Diego (RDT)</div></div>
+    <div class="sidebar-nav">
+      <a href="dashboard.html"><span class="emoji">📊</span> Dashboard</a>
+      <a href="criativos.html"><span class="emoji">🎬</span> Criativos</a>
+      <a href="analises.html" class="active"><span class="emoji">🔬</span> Análises</a>
+      <a href="#"><span class="emoji">🧪</span> Copy Lab</a>
+      <a href="#"><span class="emoji">📄</span> Relatórios</a>
+    </div>
+    <div class="sidebar-bottom">
+      <a href="#"><span class="emoji">⚙️</span> Configurações</a>
+      <a href="#"><span class="emoji">🚪</span> Sair</a>
+    </div>
+  </nav>
+
+  <main class="main">
+    <div class="topbar">
+      <h1>Análise — 12 de Março, 2026</h1>
+      <button class="btn-primary">⚡ Nova análise</button>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-bottom:24px;">
+      <div style="background:#0F0F13;border:1px solid #1C1C24;border-radius:10px;padding:16px 20px;flex:1;text-align:center;">
+        <div style="font-size:11px;color:#52525B;margin-bottom:4px;">Criativos analisados</div>
+        <div style="font-size:24px;font-weight:700;">66</div>
+      </div>
+      <div style="background:#0F0F13;border:1px solid #1C1C24;border-radius:10px;padding:16px 20px;flex:1;text-align:center;">
+        <div style="font-size:11px;color:#52525B;margin-bottom:4px;">Período</div>
+        <div style="font-size:24px;font-weight:700;">30 dias</div>
+      </div>
+      <div style="background:#0F0F13;border:1px solid #1C1C24;border-radius:10px;padding:16px 20px;flex:1;text-align:center;">
+        <div style="font-size:11px;color:#52525B;margin-bottom:4px;">Modelo</div>
+        <div style="font-size:24px;font-weight:700;">Gemini</div>
+      </div>
+    </div>
+
+    <!-- Winners patterns -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-icon">🏆</span>
+        <span class="section-title">Padrões dos Winners</span>
+        <span style="font-size:12px;color:#10B981;margin-left:auto">12 criativos · CPA médio R$18,40</span>
+      </div>
+      <ul class="pattern-list">
+        <li class="pattern-item">
+          <div class="pattern-num">1</div>
+          <div>
+            <div class="pattern-text"><strong>Hook de identidade</strong> — Criativos que abrem com "Você que..." + sentimento de perda de controle convertem 3.2x mais que hooks de sintomas.</div>
+            <div class="pattern-evidence">Ex: AD49 "Se você perdeu o controle com a comida..." (CPA R$13,65) vs AD68 "Você sente fome à noite?" (CPA R$67)</div>
+          </div>
+        </li>
+        <li class="pattern-item">
+          <div class="pattern-num">2</div>
+          <div>
+            <div class="pattern-text"><strong>Mecanismo counter-intuitive</strong> — "O problema não é falta de disciplina" funciona porque remove culpa antes de apresentar solução.</div>
+            <div class="pattern-evidence">Presente em 100% dos winners. Ausente em 85% dos losers.</div>
+          </div>
+        </li>
+        <li class="pattern-item">
+          <div class="pattern-num">3</div>
+          <div>
+            <div class="pattern-text"><strong>Palavra "controle"</strong> — Criativos que mencionam "controle" ou "perdeu o controle" no hook têm CPA 58% menor.</div>
+            <div class="pattern-evidence">Confirmado em 100% dos dados analisados.</div>
+          </div>
+        </li>
+        <li class="pattern-item">
+          <div class="pattern-num">4</div>
+          <div>
+            <div class="pattern-text"><strong>CTA limpo sem preço</strong> — "Clique em saiba mais" sem mencionar valor. Preço no hook destrói taxa de conversão.</div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Loser patterns -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-icon">❌</span>
+        <span class="section-title">Padrões dos Losers</span>
+        <span style="font-size:12px;color:#EF4444;margin-left:auto">28 criativos · CPA médio R$89,50</span>
+      </div>
+      <ul class="pattern-list">
+        <li class="pattern-item">
+          <div class="pattern-num" style="background:rgba(239,68,68,0.15);color:#EF4444">1</div>
+          <div>
+            <div class="pattern-text"><strong>Hook de lista de sintomas</strong> — Abrir com "Você sente X, Y e Z?" educa mas não converte. Não cria tensão emocional.</div>
+          </div>
+        </li>
+        <li class="pattern-item">
+          <div class="pattern-num" style="background:rgba(239,68,68,0.15);color:#EF4444">2</div>
+          <div>
+            <div class="pattern-text"><strong>Sem mecanismo claro</strong> — Criativos que não explicam POR QUE o método funciona têm CPA 4x maior.</div>
+          </div>
+        </li>
+        <li class="pattern-item">
+          <div class="pattern-num" style="background:rgba(239,68,68,0.15);color:#EF4444">3</div>
+          <div>
+            <div class="pattern-text"><strong>Depoimento de terceiros no hook</strong> — Usar história de outra pessoa (tipo "Carol Ferrera") no início não gera identificação.</div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Recommendations -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-icon">💡</span>
+        <span class="section-title">Recomendações</span>
+      </div>
+      <div class="rec-item">
+        <span class="rec-priority high">URGENTE</span>
+        <div>
+          <div class="rec-text">Pausar todos os criativos sem mecanismo counter-intuitive — estão queimando budget.</div>
+          <div class="rec-detail">Impacto estimado: economia de R$2.400/mês</div>
+        </div>
+      </div>
+      <div class="rec-item">
+        <span class="rec-priority high">URGENTE</span>
+        <div>
+          <div class="rec-text">Criar 3 variações de AD49 usando mesmo hook + mecanismo, mudando apenas o formato (B-roll, lettering, nativo).</div>
+          <div class="rec-detail">AD49 é o melhor CPA da conta — precisamos de variações antes que sature.</div>
+        </div>
+      </div>
+      <div class="rec-item">
+        <span class="rec-priority mid">RECOMENDADO</span>
+        <div>
+          <div class="rec-text">Testar hook "comendo as emoções" (do AD11, maior Hook Rate: 40.1%) combinado com mecanismo do AD49.</div>
+          <div class="rec-detail">Combina melhor hook da conta com melhor estrutura de conversão.</div>
+        </div>
+      </div>
+      <div class="rec-item">
+        <span class="rec-priority low">OPORTUNIDADE</span>
+        <div>
+          <div class="rec-text">Explorar formato nativo (produto por dentro) — AD65 mostrou CPA R$22 nos primeiros dias, defesa mais baixa que talking head.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-top:24px;">
+      <button class="btn-primary" style="padding:12px 24px;font-size:14px;">📝 Gerar copies baseadas nesta análise</button>
+      <button class="btn-secondary">📊 Exportar como PDF</button>
+      <button class="btn-secondary">🔄 Rodar novamente</button>
+    </div>
+  </main>
+</body>
+</html>

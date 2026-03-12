@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AdScore AI — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: #09090B; color: #FAFAFA; display: flex; min-height: 100vh; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 240px; min-height: 100vh; background: #0F0F13; border-right: 1px solid #1C1C24;
+    display: flex; flex-direction: column; padding: 20px 0; position: fixed; top: 0; left: 0; bottom: 0;
+  }
+  .sidebar-logo { display: flex; align-items: center; gap: 10px; padding: 0 20px; margin-bottom: 32px; }
+  .sidebar-logo .icon { width: 32px; height: 32px; background: linear-gradient(135deg, #8B5CF6, #6D28D9); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; }
+  .sidebar-logo span { font-weight: 600; font-size: 15px; letter-spacing: -0.3px; }
+  .sidebar-workspace { padding: 0 20px; margin-bottom: 24px; }
+  .sidebar-workspace .label { font-size: 11px; color: #52525B; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .sidebar-workspace .name { font-size: 13px; color: #A1A1AA; }
+  .sidebar-nav { flex: 1; }
+  .sidebar-nav a {
+    display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: 13px; color: #71717A;
+    text-decoration: none; transition: all 0.15s; border-left: 2px solid transparent;
+  }
+  .sidebar-nav a:hover { color: #E4E4E7; background: #18181F; }
+  .sidebar-nav a.active { color: #FAFAFA; background: #18181F; border-left-color: #8B5CF6; }
+  .sidebar-nav a .emoji { font-size: 16px; width: 20px; text-align: center; }
+  .sidebar-bottom { padding: 0 20px; border-top: 1px solid #1C1C24; padding-top: 16px; }
+  .sidebar-bottom a { display: flex; align-items: center; gap: 10px; padding: 8px 0; font-size: 13px; color: #52525B; text-decoration: none; }
+  .sidebar-bottom a:hover { color: #A1A1AA; }
+
+  /* Main */
+  .main { flex: 1; margin-left: 240px; padding: 24px 32px; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .topbar h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.5px; }
+  .period-selector { display: flex; gap: 2px; background: #18181B; border-radius: 8px; padding: 3px; border: 1px solid #27272A; }
+  .period-selector button {
+    padding: 6px 14px; font-size: 12px; font-weight: 500; border: none; background: transparent;
+    color: #71717A; border-radius: 6px; cursor: pointer; transition: all 0.15s; font-family: inherit;
+  }
+  .period-selector button.active { background: #27272A; color: #FAFAFA; }
+  .period-selector button:hover:not(.active) { color: #A1A1AA; }
+
+  /* KPI Cards */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .kpi-card {
+    background: #0F0F13; border: 1px solid #1C1C24; border-radius: 12px; padding: 20px;
+    transition: border-color 0.2s;
+  }
+  .kpi-card:hover { border-color: #27272A; }
+  .kpi-card .label { font-size: 12px; color: #52525B; margin-bottom: 8px; font-weight: 500; }
+  .kpi-card .value { font-size: 28px; font-weight: 700; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
+  .kpi-card .change { font-size: 11px; margin-top: 6px; font-weight: 500; }
+  .kpi-card .change.up { color: #10B981; }
+  .kpi-card .change.down { color: #EF4444; }
+  .kpi-card .value.green { color: #10B981; }
+  .kpi-card .value.red { color: #EF4444; }
+
+  /* Two column */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .card {
+    background: #0F0F13; border: 1px solid #1C1C24; border-radius: 12px; padding: 20px;
+  }
+  .card-title { font-size: 14px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+
+  /* Top 5 table */
+  .top5-table { width: 100%; }
+  .top5-table tr { border-bottom: 1px solid #1C1C24; }
+  .top5-table tr:last-child { border-bottom: none; }
+  .top5-table td { padding: 10px 0; font-size: 13px; }
+  .top5-table .rank { color: #52525B; width: 30px; font-weight: 600; }
+  .top5-table .name { color: #E4E4E7; font-weight: 500; }
+  .top5-table .cpa { text-align: right; color: #10B981; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 100px; font-size: 11px; font-weight: 500; }
+  .badge-winner { background: rgba(16, 185, 129, 0.15); color: #10B981; }
+  .badge-loser { background: rgba(239, 68, 68, 0.15); color: #EF4444; }
+
+  /* Quick Actions */
+  .actions-grid { display: flex; flex-direction: column; gap: 10px; }
+  .action-btn {
+    display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: #18181F;
+    border: 1px solid #27272A; border-radius: 10px; cursor: pointer; transition: all 0.2s;
+    text-decoration: none; color: inherit;
+  }
+  .action-btn:hover { background: #1F1F28; border-color: #8B5CF6; transform: translateY(-1px); }
+  .action-btn .icon { font-size: 20px; }
+  .action-btn .text { font-size: 13px; font-weight: 500; }
+  .action-btn .desc { font-size: 11px; color: #52525B; }
+  .action-btn.primary { background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(109,40,217,0.1)); border-color: rgba(139,92,246,0.3); }
+
+  /* Performance summary */
+  .perf-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #1C1C24; font-size: 13px; }
+  .perf-row:last-child { border-bottom: none; }
+  .perf-row .label { color: #71717A; }
+  .perf-row .value { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  /* Distribution bar */
+  .dist-bar { display: flex; height: 24px; border-radius: 6px; overflow: hidden; margin-bottom: 12px; margin-top: 8px; }
+  .dist-bar .seg { transition: width 0.3s; }
+  .dist-bar .seg.winner { background: #10B981; }
+  .dist-bar .seg.mediano { background: #F59E0B; }
+  .dist-bar .seg.loser { background: #EF4444; }
+  .dist-bar .seg.semdata { background: #27272A; }
+  .dist-legend { display: flex; gap: 16px; flex-wrap: wrap; }
+  .dist-legend .item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #A1A1AA; }
+  .dist-legend .dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* Status dot animation */
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+</style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="icon">A</div>
+      <span>AdScore AI</span>
+    </div>
+    <div class="sidebar-workspace">
+      <div class="label">Workspace</div>
+      <div class="name">Ronan Diego (RDT)</div>
+    </div>
+    <div class="sidebar-nav">
+      <a href="dashboard.html" class="active"><span class="emoji">📊</span> Dashboard</a>
+      <a href="criativos.html"><span class="emoji">🎬</span> Criativos</a>
+      <a href="analises.html"><span class="emoji">🔬</span> Análises</a>
+      <a href="#"><span class="emoji">🧪</span> Copy Lab</a>
+      <a href="#"><span class="emoji">📄</span> Relatórios</a>
+    </div>
+    <div class="sidebar-bottom">
+      <a href="#"><span class="emoji">⚙️</span> Configurações</a>
+      <a href="#"><span class="emoji">🚪</span> Sair</a>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="topbar">
+      <h1>Dashboard</h1>
+      <div class="period-selector">
+        <button>7d</button>
+        <button>14d</button>
+        <button class="active">30d</button>
+        <button>90d</button>
+        <button>Tudo</button>
+      </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="label">Total de Criativos</div>
+        <div class="value">66</div>
+        <div class="change up">↗ 8 novos esta semana</div>
+      </div>
+      <div class="kpi-card">
+        <div class="label">Winners</div>
+        <div class="value green">12</div>
+        <div class="change up">18% do total</div>
+      </div>
+      <div class="kpi-card">
+        <div class="label">Losers</div>
+        <div class="value red">28</div>
+        <div class="change down">42% do total</div>
+      </div>
+      <div class="kpi-card">
+        <div class="label">CPA Médio</div>
+        <div class="value">R$ 42,17</div>
+        <div class="change down">↘ +R$3,20 vs semana passada</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <!-- Top 5 -->
+      <div class="card">
+        <div class="card-title">🏆 Top 5 Criativos</div>
+        <table class="top5-table">
+          <tr>
+            <td class="rank">1</td>
+            <td class="name">AD49 — Para Quem Perdeu o Controle</td>
+            <td class="cpa">R$ 13,65</td>
+          </tr>
+          <tr>
+            <td class="rank">2</td>
+            <td class="name">AD61 — Remarketing Depoimento</td>
+            <td class="cpa">R$ 13,95</td>
+          </tr>
+          <tr>
+            <td class="rank">3</td>
+            <td class="name">AD11 — Comendo as Emoções</td>
+            <td class="cpa">R$ 18,20</td>
+          </tr>
+          <tr>
+            <td class="rank">4</td>
+            <td class="name">AD65 — Formato Nativo Produto</td>
+            <td class="cpa">R$ 22,40</td>
+          </tr>
+          <tr>
+            <td class="rank">5</td>
+            <td class="name">AD68 — Hook Exaustão Nova V2</td>
+            <td class="cpa">R$ 28,70</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="card">
+        <div class="card-title">⚡ Ações Rápidas</div>
+        <div class="actions-grid">
+          <a href="#" class="action-btn primary">
+            <span class="icon">⚡</span>
+            <div>
+              <div class="text">Analisar Criativos</div>
+              <div class="desc">Comparar winners vs losers com IA</div>
+            </div>
+          </a>
+          <a href="#" class="action-btn">
+            <span class="icon">📝</span>
+            <div>
+              <div class="text">Gerar Copies</div>
+              <div class="desc">Criar variações baseadas nos winners</div>
+            </div>
+          </a>
+          <a href="#" class="action-btn">
+            <span class="icon">📊</span>
+            <div>
+              <div class="text">Gerar Relatório</div>
+              <div class="desc">PDF com análise completa da conta</div>
+            </div>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <!-- Performance -->
+      <div class="card">
+        <div class="card-title">📈 Resumo de Performance</div>
+        <div class="perf-row"><span class="label">Investimento total</span><span class="value">R$ 12.487,30</span></div>
+        <div class="perf-row"><span class="label">Compras totais</span><span class="value">296</span></div>
+        <div class="perf-row"><span class="label">CPA médio</span><span class="value">R$ 42,17</span></div>
+        <div class="perf-row"><span class="label">Melhor CPA (AD49)</span><span class="value" style="color:#10B981">R$ 13,65</span></div>
+        <div class="perf-row"><span class="label">Pior CPA ativo</span><span class="value" style="color:#EF4444">R$ 108,12</span></div>
+        <div class="perf-row"><span class="label">Taxa de winners</span><span class="value">18%</span></div>
+      </div>
+
+      <!-- Distribution -->
+      <div class="card">
+        <div class="card-title">📊 Distribuição de Veredictos</div>
+        <div class="dist-bar">
+          <div class="seg winner" style="width:18%"></div>
+          <div class="seg mediano" style="width:30%"></div>
+          <div class="seg loser" style="width:42%"></div>
+          <div class="seg semdata" style="width:10%"></div>
+        </div>
+        <div class="dist-legend">
+          <div class="item"><div class="dot" style="background:#10B981"></div> Winners (18%)</div>
+          <div class="item"><div class="dot" style="background:#F59E0B"></div> Medianos (30%)</div>
+          <div class="item"><div class="dot" style="background:#EF4444"></div> Losers (42%)</div>
+          <div class="item"><div class="dot" style="background:#27272A"></div> Sem dados (10%)</div>
+        </div>
+        <div style="margin-top: 24px;">
+          <div class="perf-row"><span class="label">Spend em winners</span><span class="value" style="color:#10B981">R$ 4.820 (39%)</span></div>
+          <div class="perf-row"><span class="label">Spend em losers</span><span class="value" style="color:#EF4444">R$ 5.230 (42%)</span></div>
+          <div class="perf-row"><span class="label">Spend desperdiçado</span><span class="value" style="color:#EF4444">R$ 2.437</span></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

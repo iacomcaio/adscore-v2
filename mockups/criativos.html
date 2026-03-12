@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AdScore AI — Criativos</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: #09090B; color: #FAFAFA; display: flex; min-height: 100vh; }
+
+  .sidebar { width: 240px; min-height: 100vh; background: #0F0F13; border-right: 1px solid #1C1C24; display: flex; flex-direction: column; padding: 20px 0; position: fixed; top: 0; left: 0; bottom: 0; }
+  .sidebar-logo { display: flex; align-items: center; gap: 10px; padding: 0 20px; margin-bottom: 32px; }
+  .sidebar-logo .icon { width: 32px; height: 32px; background: linear-gradient(135deg, #8B5CF6, #6D28D9); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; }
+  .sidebar-logo span { font-weight: 600; font-size: 15px; }
+  .sidebar-workspace { padding: 0 20px; margin-bottom: 24px; }
+  .sidebar-workspace .label { font-size: 11px; color: #52525B; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .sidebar-workspace .name { font-size: 13px; color: #A1A1AA; }
+  .sidebar-nav { flex: 1; }
+  .sidebar-nav a { display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: 13px; color: #71717A; text-decoration: none; border-left: 2px solid transparent; transition: all 0.15s; }
+  .sidebar-nav a:hover { color: #E4E4E7; background: #18181F; }
+  .sidebar-nav a.active { color: #FAFAFA; background: #18181F; border-left-color: #8B5CF6; }
+  .sidebar-nav a .emoji { font-size: 16px; width: 20px; text-align: center; }
+  .sidebar-bottom { padding: 0 20px; border-top: 1px solid #1C1C24; padding-top: 16px; }
+  .sidebar-bottom a { display: flex; align-items: center; gap: 10px; padding: 8px 0; font-size: 13px; color: #52525B; text-decoration: none; }
+
+  .main { flex: 1; margin-left: 240px; padding: 24px 32px; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .topbar h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.5px; }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+
+  .period-selector { display: flex; gap: 2px; background: #18181B; border-radius: 8px; padding: 3px; border: 1px solid #27272A; }
+  .period-selector button { padding: 6px 14px; font-size: 12px; font-weight: 500; border: none; background: transparent; color: #71717A; border-radius: 6px; cursor: pointer; font-family: inherit; }
+  .period-selector button.active { background: #27272A; color: #FAFAFA; }
+
+  .filters { display: flex; gap: 8px; margin-bottom: 20px; }
+  .filter-btn { padding: 6px 14px; font-size: 12px; font-weight: 500; border: 1px solid #27272A; background: #18181B; color: #A1A1AA; border-radius: 8px; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+  .filter-btn.active { border-color: #8B5CF6; color: #FAFAFA; background: rgba(139,92,246,0.1); }
+  .filter-btn:hover:not(.active) { border-color: #3F3F46; color: #E4E4E7; }
+
+  .btn-primary { padding: 8px 16px; font-size: 13px; font-weight: 500; border: none; background: #8B5CF6; color: white; border-radius: 8px; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+  .btn-primary:hover { background: #7C3AED; }
+  .btn-sm { padding: 5px 12px; font-size: 11px; font-weight: 500; border: 1px solid #27272A; background: transparent; color: #A1A1AA; border-radius: 6px; cursor: pointer; font-family: inherit; }
+  .btn-sm:hover { border-color: #8B5CF6; color: #FAFAFA; }
+
+  .table-card { background: #0F0F13; border: 1px solid #1C1C24; border-radius: 12px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  thead { background: #141418; }
+  th { padding: 12px 16px; font-size: 11px; font-weight: 600; color: #52525B; text-transform: uppercase; letter-spacing: 0.5px; text-align: left; border-bottom: 1px solid #1C1C24; cursor: pointer; }
+  th:hover { color: #A1A1AA; }
+  th.sorted { color: #8B5CF6; }
+  td { padding: 12px 16px; font-size: 13px; border-bottom: 1px solid #1C1C24; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover { background: #141418; }
+
+  .thumb { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; border: 1px solid #27272A; background: #18181B; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .ad-name { font-weight: 500; color: #E4E4E7; margin-bottom: 2px; }
+  .ad-id { font-size: 11px; color: #3F3F46; font-variant-numeric: tabular-nums; }
+
+  .status { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .status.active .status-dot { background: #10B981; animation: pulse 2s infinite; }
+  .status.active { color: #10B981; }
+  .status.paused .status-dot { background: #3F3F46; }
+  .status.paused { color: #52525B; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+  .tabnum { font-variant-numeric: tabular-nums; font-weight: 500; }
+  .cpa-good { color: #10B981; }
+  .cpa-bad { color: #EF4444; }
+  .cpa-mid { color: #F59E0B; }
+
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 100px; font-size: 11px; font-weight: 600; }
+  .badge-winner { background: rgba(16,185,129,0.12); color: #10B981; border: 1px solid rgba(16,185,129,0.2); }
+  .badge-loser { background: rgba(239,68,68,0.12); color: #EF4444; border: 1px solid rgba(239,68,68,0.2); }
+  .badge-mediano { background: rgba(245,158,11,0.12); color: #F59E0B; border: 1px solid rgba(245,158,11,0.2); }
+  .badge-sem { background: #18181B; color: #52525B; border: 1px solid #27272A; }
+  .badge-transcribed { background: rgba(16,185,129,0.08); color: #10B981; border: 1px solid rgba(16,185,129,0.15); }
+
+  .footer { text-align: center; padding: 16px; font-size: 12px; color: #3F3F46; }
+
+  /* Modal overlay */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 50; }
+  .modal-overlay.show { display: flex; }
+  .modal { background: #0F0F13; border: 1px solid #1C1C24; border-radius: 16px; width: 560px; max-height: 80vh; overflow-y: auto; padding: 28px; }
+  .modal-header { display: flex; align-items: start; justify-content: space-between; margin-bottom: 20px; }
+  .modal-title { font-size: 18px; font-weight: 600; }
+  .modal-close { background: none; border: none; color: #52525B; font-size: 20px; cursor: pointer; }
+  .modal-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
+  .modal-stat { background: #141418; border-radius: 8px; padding: 12px; }
+  .modal-stat .label { font-size: 11px; color: #52525B; margin-bottom: 4px; }
+  .modal-stat .value { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .modal-section { margin-bottom: 16px; }
+  .modal-section-title { font-size: 12px; font-weight: 600; color: #8B5CF6; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .modal-text { font-size: 13px; color: #A1A1AA; line-height: 1.6; }
+</style>
+</head>
+<body>
+  <nav class="sidebar">
+    <div class="sidebar-logo"><div class="icon">A</div><span>AdScore AI</span></div>
+    <div class="sidebar-workspace"><div class="label">Workspace</div><div class="name">Ronan Diego (RDT)</div></div>
+    <div class="sidebar-nav">
+      <a href="dashboard.html"><span class="emoji">📊</span> Dashboard</a>
+      <a href="criativos.html" class="active"><span class="emoji">🎬</span> Criativos</a>
+      <a href="analises.html"><span class="emoji">🔬</span> Análises</a>
+      <a href="#"><span class="emoji">🧪</span> Copy Lab</a>
+      <a href="#"><span class="emoji">📄</span> Relatórios</a>
+    </div>
+    <div class="sidebar-bottom">
+      <a href="#"><span class="emoji">⚙️</span> Configurações</a>
+      <a href="#"><span class="emoji">🚪</span> Sair</a>
+    </div>
+  </nav>
+
+  <main class="main">
+    <div class="topbar">
+      <h1>Criativos</h1>
+      <div class="topbar-right">
+        <div class="period-selector">
+          <button>7d</button>
+          <button>14d</button>
+          <button class="active">30d</button>
+          <button>90d</button>
+          <button>Tudo</button>
+        </div>
+        <button class="btn-primary">⚡ Analisar todos</button>
+      </div>
+    </div>
+
+    <div class="filters">
+      <button class="filter-btn active">Todos (66)</button>
+      <button class="filter-btn">🏆 Winners (12)</button>
+      <button class="filter-btn">❌ Losers (28)</button>
+      <button class="filter-btn">➡️ Medianos (20)</button>
+      <button class="filter-btn">🎬 Vídeo</button>
+      <button class="filter-btn">🖼 Imagem</button>
+      <button class="filter-btn">🟢 Ativos</button>
+    </div>
+
+    <div class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:60px">Thumb</th>
+            <th class="sorted">Nome ↓</th>
+            <th style="width:90px">Status</th>
+            <th style="width:100px" class="sorted">Spend ↓</th>
+            <th style="width:80px">Compras</th>
+            <th style="width:100px">CPA</th>
+            <th style="width:110px">Veredicto</th>
+            <th style="width:110px">Transcrição</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr onclick="showModal()" style="cursor:pointer">
+            <td><div class="thumb">🎬</div></td>
+            <td><div class="ad-name">AD49 — Para Quem Perdeu o Controle</div><div class="ad-id">120239465982710107</div></td>
+            <td><span class="status active"><span class="status-dot"></span>Ativo</span></td>
+            <td class="tabnum">R$ 95,53</td>
+            <td class="tabnum">7</td>
+            <td class="tabnum cpa-good">R$ 13,65</td>
+            <td><span class="badge badge-winner">🏆 Winner</span></td>
+            <td><span class="badge badge-transcribed">✓ Transcrito</span></td>
+          </tr>
+          <tr style="cursor:pointer">
+            <td><div class="thumb">🎬</div></td>
+            <td><div class="ad-name">AD61 — Remarketing Depoimento</div><div class="ad-id">120239708935790107</div></td>
+            <td><span class="status active"><span class="status-dot"></span>Ativo</span></td>
+            <td class="tabnum">R$ 68,80</td>
+            <td class="tabnum">5</td>
+            <td class="tabnum cpa-good">R$ 13,95</td>
+            <td><span class="badge badge-winner">🏆 Winner</span></td>
+            <td><span class="badge badge-transcribed">✓ Transcrito</span></td>
+          </tr>
+          <tr style="cursor:pointer">
+            <td><div class="thumb">🎬</div></td>
+            <td><div class="ad-name">AD11 — Comendo as Emoções</div><div class="ad-id">120239726883010107</div></td>
+            <td><span class="status paused"><span class="status-dot"></span>Pausado</span></td>
+            <td class="tabnum">R$ 312,40</td>
+            <td class="tabnum">17</td>
+            <td class="tabnum cpa-good">R$ 18,37</td>
+            <td><span class="badge badge-winner">🏆 Winner</span></td>
+            <td><span class="badge badge-transcribed">✓ Transcrito</span></td>
+          </tr>
+          <tr style="cursor:pointer">
+            <td><div class="thumb">🎬</div></td>
+            <td><div class="ad-name">AD65 — Formato Nativo Produto</div><div class="ad-id">120239726895970107</div></td>
+            <td><span class="status paused"><span class="status-dot"></span>Pausado</span></td>
+            <td class="tabnum">R$ 216,24</td>
+            <td class="tabnum">2</td>
+            <td class="tabnum cpa-bad">R$ 108,12</td>
+            <td><span class="badge badge-mediano">➡️ Mediano</span></td>
+            <td><span class="badge badge-transcribed">✓ Transcrito</span></td>
+          </tr>
+          <tr style="cursor:pointer">
+            <td><div class="thumb">🎬</div></td>
+            <td><div class="ad-name">AD68 — Hook Exaustão V2</div><div class="ad-id">120239875653450107</div></td>
+            <td><span class="status active"><span class="status-dot"></span>Ativo</span></td>
+            <td class="tabnum">R$ 67,60</td>
+            <td class="tabnum">0</td>
+            <td class="tabnum" style="color:#52525B">—</td>
+            <td><span class="badge badge-sem">Sem dados</span></td>
+            <td><button class="btn-sm">Transcrever</button></td>
+          </tr>
+          <tr style="cursor:pointer">
+            <td><div class="thumb">🖼</div></td>
+            <td><div class="ad-name">Post IG — Depoimento Maria</div><div class="ad-id">120240122334560107</div></td>
+            <td><span class="status paused"><span class="status-dot"></span>Pausado</span></td>
+            <td class="tabnum">R$ 45,00</td>
+            <td class="tabnum">0</td>
+            <td class="tabnum" style="color:#52525B">—</td>
+            <td><span class="badge badge-loser">❌ Loser</span></td>
+            <td style="color:#3F3F46">—</td>
+          </tr>
+          <tr style="cursor:pointer">
+            <td><div class="thumb">🎬</div></td>
+            <td><div class="ad-name">AD72 V2 — Mecanismo Pausa</div><div class="ad-id">120240455667890107</div></td>
+            <td><span class="status active"><span class="status-dot"></span>Ativo</span></td>
+            <td class="tabnum">R$ 52,30</td>
+            <td class="tabnum">1</td>
+            <td class="tabnum cpa-mid">R$ 52,30</td>
+            <td><span class="badge badge-mediano">➡️ Mediano</span></td>
+            <td><button class="btn-sm">Transcrever</button></td>
+          </tr>
+          <tr style="cursor:pointer">
+            <td><div class="thumb">🎬</div></td>
+            <td><div class="ad-name">AD77 V1 — Identidade + Cansaço</div><div class="ad-id">120240778890120107</div></td>
+            <td><span class="status active"><span class="status-dot"></span>Ativo</span></td>
+            <td class="tabnum">R$ 38,90</td>
+            <td class="tabnum">0</td>
+            <td class="tabnum" style="color:#52525B">—</td>
+            <td><span class="badge badge-sem">Sem dados</span></td>
+            <td><button class="btn-sm">Transcrever</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="footer">66 anúncios · Últimos 30 dias</div>
+  </main>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title">AD49 — Para Quem Perdeu o Controle</div>
+          <div style="font-size:12px;color:#52525B;margin-top:4px">120239465982710107 · Vídeo · 🟢 Ativo</div>
+        </div>
+        <button class="modal-close" onclick="hideModal()">✕</button>
+      </div>
+
+      <div class="modal-stats">
+        <div class="modal-stat"><div class="label">Spend</div><div class="value">R$ 95,53</div></div>
+        <div class="modal-stat"><div class="label">Compras</div><div class="value">7</div></div>
+        <div class="modal-stat"><div class="label">CPA</div><div class="value" style="color:#10B981">R$ 13,65</div></div>
+        <div class="modal-stat"><div class="label">Veredicto</div><div class="value"><span class="badge badge-winner">🏆 Winner</span></div></div>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">🎣 Hook</div>
+        <div class="modal-text">"Se você perdeu o controle com a comida e come quando está ansiosa, triste ou sozinha: eu entendo."</div>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">📖 Desenvolvimento</div>
+        <div class="modal-text">"Durante anos eu tentei resolver isso com força de vontade. Não funcionou. O que funcionou foi aprender a criar uma PAUSA entre a emoção e a ação. É isso que eu ensino no Desafio 7 Dias: como quebrar o ciclo da fome emocional."</div>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">🎯 CTA</div>
+        <div class="modal-text">"Clique em saiba mais e comece o desafio de 7 dias."</div>
+      </div>
+
+      <div style="margin-top:20px; display:flex; gap:10px;">
+        <button class="btn-primary">⚡ Analisar este criativo</button>
+        <button class="btn-sm" style="padding:8px 16px">📝 Gerar copies similares</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function showModal() { document.getElementById('modal').classList.add('show'); }
+    function hideModal() { document.getElementById('modal').classList.remove('show'); }
+    document.getElementById('modal').addEventListener('click', function(e) { if(e.target===this) hideModal(); });
+  </script>
+</body>
+</html>

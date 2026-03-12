@@ -1,8 +1,10 @@
 "use client";
 
-import { signIn } from "next-auth/react";
 import { useState } from "react";
+import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -13,8 +15,8 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError("");
+    setLoading(true);
 
     const result = await signIn("credentials", {
       email,
@@ -22,68 +24,89 @@ export default function LoginPage() {
       redirect: false,
     });
 
+    setLoading(false);
+
     if (result?.error) {
       setError("Email ou senha incorretos.");
-      setLoading(false);
     } else {
       router.push("/ads");
     }
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm rounded-xl border border-zinc-200 bg-white px-8 py-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
-      >
-        <h1 className="mb-6 text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-          Entrar no AdScoreAI
-        </h1>
-
-        <div className="mb-4">
-          <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
-            Email
-          </label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-            placeholder="seu@email.com"
-          />
+    <main className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950 px-4">
+      <div className="w-full max-w-sm space-y-6">
+        {/* Logo */}
+        <div className="flex flex-col items-center gap-2">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-900 text-xl font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
+            A
+          </div>
+          <h1 className="text-xl font-semibold tracking-tight">AdScore AI</h1>
+          <p className="text-sm text-zinc-500">Análise inteligente de criativos</p>
         </div>
 
-        <div className="mb-4">
-          <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
-            Senha
-          </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-            placeholder="••••••••"
-          />
-        </div>
+        <Card>
+          <CardHeader className="text-center pb-4">
+            <CardTitle className="text-lg">Entrar</CardTitle>
+            <CardDescription>
+              Primeiro login? A conta é criada automaticamente.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="email" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="seu@email.com"
+                  required
+                  className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 dark:border-zinc-800 dark:bg-zinc-950 dark:ring-offset-zinc-950 dark:placeholder:text-zinc-400 dark:focus-visible:ring-zinc-300"
+                />
+              </div>
 
-        {error && (
-          <p className="mb-4 text-xs text-red-600">{error}</p>
-        )}
+              <div className="space-y-2">
+                <label htmlFor="password" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  Senha
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  minLength={6}
+                  className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 dark:border-zinc-800 dark:bg-zinc-950 dark:ring-offset-zinc-950 dark:placeholder:text-zinc-400 dark:focus-visible:ring-zinc-300"
+                />
+              </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-        >
-          {loading ? "Entrando..." : "Entrar"}
-        </button>
+              {error && (
+                <p className="text-sm text-red-500 text-center">{error}</p>
+              )}
 
-        <p className="mt-4 text-center text-[11px] text-zinc-500">
-          Primeiro login? A conta é criada automaticamente.
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    Entrando...
+                  </span>
+                ) : (
+                  "Entrar"
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        <p className="text-center text-[11px] text-zinc-400">
+          Powered by Meta Ads API + Gemini AI
         </p>
-      </form>
+      </div>
     </main>
   );
 }

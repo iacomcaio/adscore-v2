@@ -4,6 +4,18 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getClassifiedAdsForAccount, type ClassifiedAd } from "@/lib/meta-api";
 import { ensureTranscriptionForVideo } from "@/lib/transcription";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Separator } from "@/components/ui/separator";
 
 type AdsPageProps = {
   searchParams: Promise<{
@@ -16,8 +28,7 @@ type AdsPageProps = {
 function sortAds(ads: ClassifiedAd[], sort?: string, dir?: string): ClassifiedAd[] {
   const direction = dir === "asc" ? 1 : -1;
   const key = sort ?? "spend";
-
-  const sorted = [...ads].sort((a, b) => {
+  return [...ads].sort((a, b) => {
     switch (key) {
       case "name":
         return direction * a.name.localeCompare(b.name);
@@ -34,12 +45,10 @@ function sortAds(ads: ClassifiedAd[], sort?: string, dir?: string): ClassifiedAd
         return direction * (a.spend - b.spend);
     }
   });
-
-  return sorted;
 }
 
 function formatCurrency(value: number | null): string {
-  if (value === null || !Number.isFinite(value)) return "-";
+  if (value === null || !Number.isFinite(value)) return "—";
   return value.toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
@@ -48,63 +57,97 @@ function formatCurrency(value: number | null): string {
 }
 
 function formatPercent(value: number | null): string {
-  if (value === null || !Number.isFinite(value)) return "-";
+  if (value === null || !Number.isFinite(value)) return "—";
   return `${value.toFixed(2)}%`;
 }
 
-function verdictLabel(verdict: ClassifiedAd["verdict"]): string {
+function VerdictBadge({ verdict }: { verdict: ClassifiedAd["verdict"] }) {
   switch (verdict) {
     case "WINNER":
-      return "🏆 Winner";
+      return <Badge className="bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 border-emerald-500/20 dark:text-emerald-400">🏆 Winner</Badge>;
     case "LOSER":
-      return "❌ Loser";
+      return <Badge variant="destructive" className="bg-red-500/15 text-red-700 hover:bg-red-500/25 border-red-500/20 dark:text-red-400">Loser</Badge>;
     case "MEDIANO":
-      return "➡️ Mediano";
+      return <Badge variant="secondary" className="bg-amber-500/15 text-amber-700 hover:bg-amber-500/25 border-amber-500/20 dark:text-amber-400">Mediano</Badge>;
     case "SEM_DADOS":
     default:
-      return "Sem dados suficientes";
+      return <Badge variant="outline" className="text-zinc-500">Sem dados</Badge>;
   }
 }
+
+function StatusBadge({ status }: { status: string }) {
+  const isActive = status === "ACTIVE";
+  return (
+    <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${isActive ? "text-emerald-600 dark:text-emerald-400" : "text-zinc-400"}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${isActive ? "bg-emerald-500 animate-pulse" : "bg-zinc-300 dark:bg-zinc-600"}`} />
+      {isActive ? "Ativo" : "Pausado"}
+    </span>
+  );
+}
+
+function SortableHeader({ children, field, currentSort, currentDir, params }: {
+  children: React.ReactNode;
+  field: string;
+  currentSort?: string;
+  currentDir?: string;
+  params: Record<string, string | undefined>;
+}) {
+  const isActive = (currentSort ?? "spend") === field;
+  const nextDir = isActive && currentDir !== "asc" ? "asc" : "desc";
+  return (
+    <TableHead className="whitespace-nowrap">
+      <Link
+        href={{ pathname: "/ads", query: { ...params, sort: field, dir: nextDir } }}
+        className={`inline-flex items-center gap-1 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors ${isActive ? "text-zinc-900 dark:text-zinc-100 font-semibold" : ""}`}
+      >
+        {children}
+        {isActive && <span className="text-[10px]">{currentDir === "asc" ? "↑" : "↓"}</span>}
+      </Link>
+    </TableHead>
+  );
+}
+
+const PERIODS = [
+  { value: "last_7d", label: "7d" },
+  { value: "last_14d", label: "14d" },
+  { value: "last_30d", label: "30d" },
+  { value: "last_90d", label: "90d" },
+  { value: "maximum", label: "Tudo" },
+];
 
 export default async function AdsPage({ searchParams }: AdsPageProps) {
   const session = await auth();
 
   if (!session?.user?.id) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black">
-        <div className="rounded-xl border border-zinc-200 bg-white px-8 py-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="mb-4 text-zinc-800 dark:text-zinc-100">
-            Você precisa estar logado para ver os anúncios.
-          </p>
-          <Link
-            href="/login"
-            className="inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-          >
-            Ir para login
-          </Link>
-        </div>
+      <main className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle>Acesso necessário</CardTitle>
+            <CardDescription>Faça login para ver seus anúncios.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-center">
+            <Button asChild><Link href="/login">Fazer login</Link></Button>
+          </CardContent>
+        </Card>
       </main>
     );
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-  });
+  const user = await prisma.user.findUnique({ where: { id: session.user.id } });
 
   if (!user?.metaToken || !user.selectedAccount) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black">
-        <div className="rounded-xl border border-zinc-200 bg-white px-8 py-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="mb-4 text-zinc-800 dark:text-zinc-100">
-            Conecte sua conta Meta Ads e selecione uma conta de anúncio para ver os criativos.
-          </p>
-          <Link
-            href="/meta/connect"
-            className="inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-          >
-            Conectar Meta Ads
-          </Link>
-        </div>
+      <main className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle>Conecte o Meta Ads</CardTitle>
+            <CardDescription>Vincule sua conta de anúncios para começar a análise.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-center">
+            <Button asChild><Link href="/meta/connect">Conectar Meta Ads</Link></Button>
+          </CardContent>
+        </Card>
       </main>
     );
   }
@@ -121,56 +164,109 @@ export default async function AdsPage({ searchParams }: AdsPageProps) {
   });
 
   const videoIds = Array.from(
-    new Set(
-      ads
-        .filter((ad) => ad.type === "video" && ad.videoId)
-        .map((ad) => ad.videoId as string),
-    ),
+    new Set(ads.filter((ad) => ad.type === "video" && ad.videoId).map((ad) => ad.videoId as string)),
   );
 
   const existingTranscriptions = videoIds.length
-    ? await prisma.transcription.findMany({
-        where: { videoId: { in: videoIds } },
-        select: { videoId: true },
-      })
+    ? await prisma.transcription.findMany({ where: { videoId: { in: videoIds } }, select: { videoId: true } })
     : [];
-
   const transcribedVideoIds = new Set(existingTranscriptions.map((t) => t.videoId));
 
   const sortedAds = sortAds(ads, sort, dir);
 
+  // Stats
+  const totalSpend = ads.reduce((s, a) => s + a.spend, 0);
+  const totalPurchases = ads.reduce((s, a) => s + a.purchases, 0);
+  const avgCpa = totalPurchases > 0 ? totalSpend / totalPurchases : null;
+  const winners = ads.filter((a) => a.verdict === "WINNER").length;
+  const losers = ads.filter((a) => a.verdict === "LOSER").length;
+
   return (
-    <main className="flex min-h-screen flex-col bg-zinc-50 p-6 text-sm text-zinc-900 dark:bg-black dark:text-zinc-50">
-      <header className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Criativos da conta</h1>
-          <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-            Exibindo anúncios com spend &gt; 0, excluindo posts impulsionados, classificados por
-            performance.
-          </p>
+    <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+      {/* Top bar */}
+      <div className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-900 text-sm font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
+              A
+            </div>
+            <div>
+              <h1 className="text-lg font-semibold tracking-tight">AdScore AI</h1>
+              <p className="text-xs text-zinc-500">Análise de criativos</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link href="/analysis" className="text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors">
+              Histórico
+            </Link>
+            <Separator orientation="vertical" className="h-5" />
+            <span className="text-xs text-zinc-400">{user.email}</span>
+          </div>
         </div>
-        <div className="flex items-center gap-4">
+      </div>
+
+      <div className="mx-auto max-w-7xl px-6 py-6 space-y-6">
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription className="text-xs">Spend total</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold tabular-nums">{formatCurrency(totalSpend)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription className="text-xs">Compras</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold tabular-nums">{totalPurchases}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription className="text-xs">CPA médio</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold tabular-nums">{formatCurrency(avgCpa)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription className="text-xs">Winners / Losers</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">
+                <span className="text-emerald-600">{winners}</span>
+                <span className="text-zinc-300 mx-1">/</span>
+                <span className="text-red-500">{losers}</span>
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Controls */}
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-zinc-600 dark:text-zinc-400">Período:</span>
-            <div className="inline-flex rounded-md border border-zinc-200 bg-white p-0.5 text-xs dark:border-zinc-800 dark:bg-zinc-900">
-              {["last_7d", "last_14d", "last_30d", "last_90d", "maximum"].map((p) => (
+            <span className="text-xs font-medium text-zinc-500">Período:</span>
+            <div className="inline-flex rounded-lg border border-zinc-200 bg-white p-0.5 dark:border-zinc-800 dark:bg-zinc-900">
+              {PERIODS.map((p) => (
                 <Link
-                  key={p}
-                  href={{
-                    pathname: "/ads",
-                    query: { ...params, period: p },
-                  }}
-                  className={`rounded px-2 py-1 ${
-                    period === p
-                      ? "bg-black text-white dark:bg-zinc-100 dark:text-zinc-900"
-                      : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                  key={p.value}
+                  href={{ pathname: "/ads", query: { ...params, period: p.value } }}
+                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+                    period === p.value
+                      ? "bg-zinc-900 text-white shadow-sm dark:bg-zinc-100 dark:text-zinc-900"
+                      : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
                   }`}
                 >
-                  {p === "maximum" ? "Tudo" : p.replace("last_", "")}d
+                  {p.label}
                 </Link>
               ))}
             </div>
           </div>
+
           <form
             action={async () => {
               "use server";
@@ -178,166 +274,116 @@ export default async function AdsPage({ searchParams }: AdsPageProps) {
               await runComparativeAnalysis({ userId: user.id, period });
             }}
           >
-            <button
-              type="submit"
-              className="inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-xs font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-            >
-              Rodar análise comparativa
-            </button>
+            <Button type="submit" size="sm">
+              ⚡ Rodar análise comparativa
+            </Button>
           </form>
         </div>
-      </header>
 
-      {sortedAds.length === 0 ? (
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Nenhum anúncio com spend &gt; 0 encontrado para o período selecionado.
-        </p>
-      ) : (
-        <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <table className="min-w-full table-fixed border-collapse text-xs">
-            <thead className="bg-zinc-100 text-left text-[11px] font-medium uppercase tracking-wide text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-              <tr>
-                <th className="w-16 px-3 py-2">Thumb</th>
-                <th className="w-64 px-3 py-2">
-                  <Link
-                    href={{
-                      pathname: "/ads",
-                      query: { ...params, sort: "name", dir: dir === "asc" ? "desc" : "asc" },
-                    }}
-                  >
+        {/* Ads table */}
+        {sortedAds.length === 0 ? (
+          <Card>
+            <CardContent className="flex items-center justify-center py-16">
+              <p className="text-sm text-zinc-500">Nenhum anúncio com spend &gt; 0 para este período.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="w-14">Thumb</TableHead>
+                  <SortableHeader field="name" currentSort={sort} currentDir={dir} params={params ?? {}}>
                     Nome
-                  </Link>
-                </th>
-                <th className="w-16 px-3 py-2">Tipo</th>
-                <th className="w-20 px-3 py-2">Status</th>
-                <th className="w-24 px-3 py-2">
-                  <Link
-                    href={{
-                      pathname: "/ads",
-                      query: { ...params, sort: "spend", dir: dir === "asc" ? "desc" : "asc" },
-                    }}
-                  >
+                  </SortableHeader>
+                  <TableHead className="w-20">Status</TableHead>
+                  <SortableHeader field="spend" currentSort={sort} currentDir={dir} params={params ?? {}}>
                     Spend
-                  </Link>
-                </th>
-                <th className="w-24 px-3 py-2">
-                  <Link
-                    href={{
-                      pathname: "/ads",
-                      query: {
-                        ...params,
-                        sort: "purchases",
-                        dir: dir === "asc" ? "desc" : "asc",
-                      },
-                    }}
-                  >
+                  </SortableHeader>
+                  <SortableHeader field="purchases" currentSort={sort} currentDir={dir} params={params ?? {}}>
                     Compras
-                  </Link>
-                </th>
-                <th className="w-24 px-3 py-2">
-                  <Link
-                    href={{
-                      pathname: "/ads",
-                      query: { ...params, sort: "cpa", dir: dir === "asc" ? "desc" : "asc" },
-                    }}
-                  >
+                  </SortableHeader>
+                  <SortableHeader field="cpa" currentSort={sort} currentDir={dir} params={params ?? {}}>
                     CPA
-                  </Link>
-                </th>
-                <th className="w-20 px-3 py-2">
-                  <Link
-                    href={{
-                      pathname: "/ads",
-                      query: { ...params, sort: "ctr", dir: dir === "asc" ? "desc" : "asc" },
-                    }}
-                  >
-                    CTR
-                  </Link>
-                </th>
-                <th className="w-20 px-3 py-2">
-                  <Link
-                    href={{
-                      pathname: "/ads",
-                      query: { ...params, sort: "roas", dir: dir === "asc" ? "desc" : "asc" },
-                    }}
-                  >
-                    ROAS
-                  </Link>
-                </th>
-                <th className="w-32 px-3 py-2">Veredicto</th>
-                <th className="w-32 px-3 py-2">Transcrição</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedAds.map((ad) => (
-                <tr
-                  key={ad.id}
-                  className="border-t border-zinc-100 text-xs text-zinc-800 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-800/70"
-                >
-                  <td className="px-3 py-2">
-                    {ad.thumbnailUrl ? (
-                      <Image
-                        src={ad.thumbnailUrl}
-                        alt={ad.name}
-                        width={48}
-                        height={48}
-                        className="h-12 w-12 rounded object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-12 w-12 items-center justify-center rounded bg-zinc-100 text-[10px] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
-                        {ad.type === "video" ? "Vídeo" : "Imagem"}
-                      </div>
-                    )}
-                  </td>
-                  <td className="truncate px-3 py-2" title={ad.name}>
-                    {ad.name}
-                  </td>
-                  <td className="px-3 py-2 capitalize">
-                    {ad.type === "video" ? "Vídeo" : "Imagem"}
-                  </td>
-                  <td className="px-3 py-2 uppercase text-[11px]">{ad.status}</td>
-                  <td className="px-3 py-2 tabular-nums">{formatCurrency(ad.spend)}</td>
-                  <td className="px-3 py-2 tabular-nums">{ad.purchases}</td>
-                  <td className="px-3 py-2 tabular-nums">{formatCurrency(ad.cpa)}</td>
-                  <td className="px-3 py-2 tabular-nums">{formatPercent(ad.ctr)}</td>
-                  <td className="px-3 py-2 tabular-nums">
-                    {ad.roas === null ? "-" : ad.roas.toFixed(2)}
-                  </td>
-                  <td className="px-3 py-2 text-xs">{verdictLabel(ad.verdict)}</td>
-                  <td className="px-3 py-2 text-xs">
-                    {ad.type !== "video" || !ad.videoId ? (
-                      "-"
-                    ) : transcribedVideoIds.has(ad.videoId) ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
-                        <span>✅</span>
-                        <span>Transcrito</span>
-                      </span>
-                    ) : (
-                      <form
-                        action={async () => {
-                          "use server";
-                          await ensureTranscriptionForVideo({
-                            userId: user.id,
-                            videoId: ad.videoId as string,
-                          });
-                        }}
-                      >
-                        <button
-                          type="submit"
-                          className="inline-flex items-center justify-center rounded-md border border-zinc-300 px-2 py-1 text-[11px] font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                  </SortableHeader>
+                  <TableHead className="w-28">Veredicto</TableHead>
+                  <TableHead className="w-28">Transcrição</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sortedAds.map((ad) => (
+                  <TableRow key={ad.id}>
+                    <TableCell>
+                      {ad.thumbnailUrl ? (
+                        <Image
+                          src={ad.thumbnailUrl}
+                          alt={ad.name}
+                          width={40}
+                          height={40}
+                          className="h-10 w-10 rounded-md object-cover ring-1 ring-zinc-200 dark:ring-zinc-700"
+                        />
+                      ) : (
+                        <div className="flex h-10 w-10 items-center justify-center rounded-md bg-zinc-100 text-[10px] text-zinc-400 dark:bg-zinc-800">
+                          {ad.type === "video" ? "🎬" : "🖼"}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="max-w-[280px]">
+                      <p className="truncate font-medium text-zinc-900 dark:text-zinc-100" title={ad.name}>
+                        {ad.name}
+                      </p>
+                      <p className="text-[11px] text-zinc-400">{ad.id}</p>
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge status={ad.status} />
+                    </TableCell>
+                    <TableCell className="tabular-nums font-medium">{formatCurrency(ad.spend)}</TableCell>
+                    <TableCell className="tabular-nums">{ad.purchases}</TableCell>
+                    <TableCell className="tabular-nums font-medium">
+                      {ad.cpa !== null ? (
+                        <span className={ad.cpa <= (avgCpa ?? Infinity) ? "text-emerald-600 dark:text-emerald-400" : "text-red-500"}>
+                          {formatCurrency(ad.cpa)}
+                        </span>
+                      ) : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <VerdictBadge verdict={ad.verdict} />
+                    </TableCell>
+                    <TableCell>
+                      {ad.type !== "video" || !ad.videoId ? (
+                        <span className="text-zinc-300 dark:text-zinc-600">—</span>
+                      ) : transcribedVideoIds.has(ad.videoId) ? (
+                        <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800">
+                          ✓ Transcrito
+                        </Badge>
+                      ) : (
+                        <form
+                          action={async () => {
+                            "use server";
+                            await ensureTranscriptionForVideo({
+                              userId: user.id,
+                              videoId: ad.videoId as string,
+                            });
+                          }}
                         >
-                          Transcrever
-                        </button>
-                      </form>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+                          <Button type="submit" variant="outline" size="sm" className="h-7 text-xs">
+                            Transcrever
+                          </Button>
+                        </form>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        )}
+
+        {/* Footer */}
+        <p className="text-center text-[11px] text-zinc-400">
+          {sortedAds.length} anúncios · {period === "maximum" ? "Todos os dados" : `Últimos ${period.replace("last_", "").replace("d", " dias")}`}
+        </p>
+      </div>
     </main>
   );
 }
-

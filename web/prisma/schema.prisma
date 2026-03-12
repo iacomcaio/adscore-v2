@@ -9,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -18,7 +18,7 @@ model User {
   name            String?
   email           String?     @unique
   image           String?
-  metaToken       String?
+  metaToken       String?     @db.Text
   metaTokenExp    DateTime?
   metaUserId      String?
   selectedAccount String?
@@ -35,16 +35,16 @@ model Analysis {
   adsCount     Int
   winnersCount Int
   losersCount  Int
-  resultJson   String
+  resultJson   Json
   createdAt    DateTime @default(now())
 }
 
 model Transcription {
   id        String   @id @default(cuid())
   videoId   String   @unique
-  full      String
-  hook      String?
-  meio      String?
-  cta       String?
+  full      String   @db.Text
+  hook      String?  @db.Text
+  meio      String?  @db.Text
+  cta       String?  @db.Text
   createdAt DateTime @default(now())
 }

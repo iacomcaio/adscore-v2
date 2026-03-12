@@ -288,7 +288,9 @@ export async function getClassifiedAdsForAccount(params: {
   );
 
   if (!adsRes.ok) {
-    throw new Error("Failed to fetch ads from Meta");
+    const errorBody = await adsRes.text();
+    console.error("Meta ads API error:", adsRes.status, errorBody);
+    throw new Error(`Failed to fetch ads from Meta: ${adsRes.status} ${errorBody.slice(0, 200)}`);
   }
 
   const adsJson = (await adsRes.json()) as { data?: MetaAdCreative[] };
@@ -313,7 +315,9 @@ export async function getClassifiedAdsForAccount(params: {
   );
 
   if (!insightsRes.ok) {
-    throw new Error("Failed to fetch ad insights from Meta");
+    const errorBody = await insightsRes.text();
+    console.error("Meta insights API error:", insightsRes.status, errorBody);
+    throw new Error(`Failed to fetch insights from Meta: ${insightsRes.status} ${errorBody.slice(0, 200)}`);
   }
 
   const insightsJson = (await insightsRes.json()) as { data?: MetaAdInsight[] };

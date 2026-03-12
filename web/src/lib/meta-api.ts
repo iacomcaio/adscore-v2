@@ -277,9 +277,7 @@ export async function getClassifiedAdsForAccount(params: {
     access_token: accessToken,
     fields:
       "id,name,status,effective_status,creative{id,video_id,image_url,thumbnail_url}",
-    filtering:
-      '[{"field":"effective_status","operator":"IN","value":["ACTIVE","PAUSED"]}]',
-    limit: "100",
+    limit: "500",
   });
 
   const adsRes = await fetch(

@@ -153,7 +153,7 @@ export default async function AdsPage({ searchParams }: AdsPageProps) {
           <div className="flex items-center gap-2">
             <span className="text-xs text-zinc-600 dark:text-zinc-400">Período:</span>
             <div className="inline-flex rounded-md border border-zinc-200 bg-white p-0.5 text-xs dark:border-zinc-800 dark:bg-zinc-900">
-              {["last_7d", "last_14d", "last_30d", "last_60d", "last_90d"].map((p) => (
+              {["last_7d", "last_14d", "last_30d", "last_90d", "maximum"].map((p) => (
                 <Link
                   key={p}
                   href={{
@@ -166,7 +166,7 @@ export default async function AdsPage({ searchParams }: AdsPageProps) {
                       : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
                   }`}
                 >
-                  {p.replace("last_", "")}d
+                  {p === "maximum" ? "Tudo" : p.replace("last_", "")}d
                 </Link>
               ))}
             </div>

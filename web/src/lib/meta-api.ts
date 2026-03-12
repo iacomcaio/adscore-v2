@@ -276,10 +276,10 @@ export async function getClassifiedAdsForAccount(params: {
   const adsParams = new URLSearchParams({
     access_token: accessToken,
     fields:
-      "id,name,status,effective_status,creative{id,body,title,object_story_spec,asset_feed_spec,video_id,image_url,thumbnail_url,call_to_action_type}",
+      "id,name,status,effective_status,creative{id,video_id,image_url,thumbnail_url}",
     filtering:
       '[{"field":"effective_status","operator":"IN","value":["ACTIVE","PAUSED"]}]',
-    limit: "200",
+    limit: "100",
   });
 
   const adsRes = await fetch(
@@ -300,11 +300,10 @@ export async function getClassifiedAdsForAccount(params: {
   const insightsParams = new URLSearchParams({
     access_token: accessToken,
     fields:
-      "ad_id,ad_name,spend,impressions,clicks,ctr,cpc,cpm,actions,action_values,cost_per_action_type",
+      "ad_id,ad_name,spend,impressions,clicks,actions,cost_per_action_type",
     date_preset: period,
     level: "ad",
-    limit: "500",
-    action_attribution_windows: '["7d_click","1d_view"]',
+    limit: "200",
   });
 
   const insightsRes = await fetch(

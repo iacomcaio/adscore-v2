@@ -158,7 +158,7 @@ export default async function AdsPage({ searchParams }: AdsPageProps) {
                   key={p}
                   href={{
                     pathname: "/ads",
-                    query: { ...searchParams, period: p },
+                    query: { ...params, period: p },
                   }}
                   className={`rounded px-2 py-1 ${
                     period === p

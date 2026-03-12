@@ -299,26 +299,27 @@ export async function getClassifiedAdsForAccount(params: {
 
   if (insights.length === 0) return [];
 
-  // Passo 2: Buscar detalhes dos ads que têm spend (batch por ID)
+  // Passo 2: Buscar detalhes dos ads em chunks de 50
   const adIds = insights.map((i) => i.ad_id);
-  const adsParams = new URLSearchParams({
-    access_token: accessToken,
-    ids: adIds.join(","),
-    fields: "id,name,status,effective_status,creative{id,video_id,image_url,thumbnail_url}",
-  });
-
-  const adsRes = await fetch(
-    `${META_GRAPH_BASE}/?${adsParams.toString()}`,
-    { method: "GET" },
-  );
-
   let adsById: Record<string, MetaAdCreative> = {};
-  if (adsRes.ok) {
-    adsById = (await adsRes.json()) as Record<string, MetaAdCreative>;
-    console.log(`[DEBUG] Ad details fetched: ${Object.keys(adsById).length}`);
-  } else {
-    console.error("Meta ads batch error:", adsRes.status, await adsRes.text());
+
+  for (let i = 0; i < adIds.length; i += 50) {
+    const chunk = adIds.slice(i, i + 50);
+    const adsParams = new URLSearchParams({
+      access_token: accessToken,
+      ids: chunk.join(","),
+      fields: "id,name,status,effective_status,creative{id,video_id,image_url,thumbnail_url}",
+    });
+
+    const adsRes = await fetch(`${META_GRAPH_BASE}/?${adsParams.toString()}`);
+    if (adsRes.ok) {
+      const batch = (await adsRes.json()) as Record<string, MetaAdCreative>;
+      Object.assign(adsById, batch);
+    } else {
+      console.error("Meta ads batch error:", adsRes.status, await adsRes.text());
+    }
   }
+  console.log(`[DEBUG] Ad details fetched: ${Object.keys(adsById).length}`);
 
   // Merge
   const merged: ClassifiedAd[] = [];

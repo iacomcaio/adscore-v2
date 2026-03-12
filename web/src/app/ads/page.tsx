@@ -202,7 +202,7 @@ export default async function AdsPage({ searchParams }: AdsPageProps) {
                   <Link
                     href={{
                       pathname: "/ads",
-                      query: { ...searchParams, sort: "name", dir: dir === "asc" ? "desc" : "asc" },
+                      query: { ...params, sort: "name", dir: dir === "asc" ? "desc" : "asc" },
                     }}
                   >
                     Nome
@@ -214,7 +214,7 @@ export default async function AdsPage({ searchParams }: AdsPageProps) {
                   <Link
                     href={{
                       pathname: "/ads",
-                      query: { ...searchParams, sort: "spend", dir: dir === "asc" ? "desc" : "asc" },
+                      query: { ...params, sort: "spend", dir: dir === "asc" ? "desc" : "asc" },
                     }}
                   >
                     Spend
@@ -225,7 +225,7 @@ export default async function AdsPage({ searchParams }: AdsPageProps) {
                     href={{
                       pathname: "/ads",
                       query: {
-                        ...searchParams,
+                        ...params,
                         sort: "purchases",
                         dir: dir === "asc" ? "desc" : "asc",
                       },
@@ -238,7 +238,7 @@ export default async function AdsPage({ searchParams }: AdsPageProps) {
                   <Link
                     href={{
                       pathname: "/ads",
-                      query: { ...searchParams, sort: "cpa", dir: dir === "asc" ? "desc" : "asc" },
+                      query: { ...params, sort: "cpa", dir: dir === "asc" ? "desc" : "asc" },
                     }}
                   >
                     CPA
@@ -248,7 +248,7 @@ export default async function AdsPage({ searchParams }: AdsPageProps) {
                   <Link
                     href={{
                       pathname: "/ads",
-                      query: { ...searchParams, sort: "ctr", dir: dir === "asc" ? "desc" : "asc" },
+                      query: { ...params, sort: "ctr", dir: dir === "asc" ? "desc" : "asc" },
                     }}
                   >
                     CTR
@@ -258,7 +258,7 @@ export default async function AdsPage({ searchParams }: AdsPageProps) {
                   <Link
                     href={{
                       pathname: "/ads",
-                      query: { ...searchParams, sort: "roas", dir: dir === "asc" ? "desc" : "asc" },
+                      query: { ...params, sort: "roas", dir: dir === "asc" ? "desc" : "asc" },
                     }}
                   >
                     ROAS

@@ -6,11 +6,11 @@ import { getClassifiedAdsForAccount, type ClassifiedAd } from "@/lib/meta-api";
 import { ensureTranscriptionForVideo } from "@/lib/transcription";
 
 type AdsPageProps = {
-  searchParams?: {
+  searchParams: Promise<{
     sort?: string;
     dir?: string;
     period?: string;
-  };
+  }>;
 };
 
 function sortAds(ads: ClassifiedAd[], sort?: string, dir?: string): ClassifiedAd[] {
@@ -109,9 +109,10 @@ export default async function AdsPage({ searchParams }: AdsPageProps) {
     );
   }
 
-  const sort = searchParams?.sort;
-  const dir = searchParams?.dir;
-  const period = searchParams?.period ?? "last_30d";
+  const params = await searchParams;
+  const sort = params?.sort;
+  const dir = params?.dir;
+  const period = params?.period ?? "last_30d";
 
   const ads = await getClassifiedAdsForAccount({
     accountId: user.selectedAccount,

@@ -17,6 +17,7 @@ model User {
   name            String?
   email           String?     @unique
   image           String?
+  password        String?
   metaToken       String?     @db.Text
   metaTokenExp    DateTime?
   metaUserId      String?

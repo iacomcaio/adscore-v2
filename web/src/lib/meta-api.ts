@@ -136,12 +136,15 @@ export async function getVideoSource(params: {
   const res = await fetch(url.toString(), { method: "GET" });
 
   if (!res.ok) {
-    throw new Error("Failed to fetch video source from Meta");
+    const errBody = await res.text();
+    console.error(`[getVideoSource] Failed for ${videoId}:`, res.status, errBody);
+    return null;
   }
 
   const json = (await res.json()) as { source?: string };
   if (!json.source) {
-    throw new Error("Meta video source is missing");
+    console.error(`[getVideoSource] No source field for ${videoId}`);
+    return null;
   }
 
   return json.source;

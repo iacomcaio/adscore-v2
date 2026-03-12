@@ -94,6 +94,15 @@ export async function ensureTranscriptionForVideo(params: {
     accessToken: user.metaToken,
   });
 
+  if (!sourceUrl) {
+    return {
+      full: "[Transcrição indisponível — vídeo sem acesso ao source]",
+      hook: null,
+      meio: null,
+      cta: null,
+    };
+  }
+
   const text = await callWhisperWithUrl(sourceUrl);
   const segments = splitTranscriptionIntoSegments(text);
 

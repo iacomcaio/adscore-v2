@@ -295,6 +295,7 @@ export async function getClassifiedAdsForAccount(params: {
 
   const adsJson = (await adsRes.json()) as { data?: MetaAdCreative[] };
   const ads = adsJson.data ?? [];
+  console.log(`[DEBUG] Ads returned: ${ads.length}. First 3 IDs: ${ads.slice(0, 3).map(a => a.id).join(', ')}`);
 
   // Passo 2: Buscar métricas de todos os ads
   const insightsParams = new URLSearchParams({
@@ -321,6 +322,9 @@ export async function getClassifiedAdsForAccount(params: {
 
   const insightsJson = (await insightsRes.json()) as { data?: MetaAdInsight[] };
   const insights = insightsJson.data ?? [];
+  console.log(`[DEBUG] Insights returned: ${insights.length}. First 3: ${JSON.stringify(insights.slice(0, 3).map(i => ({ ad_id: i.ad_id, spend: i.spend })))}`);
+  console.log(`[DEBUG] Ads IDs: ${ads.slice(0, 5).map(a => a.id).join(', ')}`);
+  console.log(`[DEBUG] Insight ad_ids: ${insights.slice(0, 5).map(i => i.ad_id).join(', ')}`);
 
   const insightsByAdId = new Map<string, MetaAdInsight>();
   insights.forEach((insight) => {

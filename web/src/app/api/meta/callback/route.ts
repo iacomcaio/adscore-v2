@@ -10,18 +10,18 @@ import {
 export async function GET(request: NextRequest) {
   const session = await auth();
 
+  const baseUrl = process.env.AUTH_URL ?? "http://localhost:3000";
+
   if (!session?.user?.id) {
-    return NextResponse.redirect("/login");
+    return NextResponse.redirect(`${baseUrl}/login`);
   }
 
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
 
   if (!code) {
-    return NextResponse.redirect("/meta/connect");
+    return NextResponse.redirect(`${baseUrl}/meta/connect`);
   }
-
-  const baseUrl = process.env.AUTH_URL ?? "http://localhost:3000";
   const redirectUri = `${baseUrl}/api/meta/callback`;
 
   try {
@@ -43,6 +43,6 @@ export async function GET(request: NextRequest) {
     // For now, just continue to the connect page; we'll add richer error handling later.
   }
 
-  return NextResponse.redirect("/meta/connect");
+  return NextResponse.redirect(`${baseUrl}/meta/connect`);
 }
 

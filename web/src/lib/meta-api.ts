@@ -272,30 +272,7 @@ export async function getClassifiedAdsForAccount(params: {
 }): Promise<ClassifiedAd[]> {
   const { accountId, accessToken, period } = params;
 
-  // Passo 1: Buscar ads
-  const adsParams = new URLSearchParams({
-    access_token: accessToken,
-    fields:
-      "id,name,status,effective_status,creative{id,video_id,image_url,thumbnail_url}",
-    limit: "500",
-  });
-
-  const adsRes = await fetch(
-    `${META_GRAPH_BASE}/${encodeURIComponent(accountId)}/ads?${adsParams.toString()}`,
-    { method: "GET" },
-  );
-
-  if (!adsRes.ok) {
-    const errorBody = await adsRes.text();
-    console.error("Meta ads API error:", adsRes.status, errorBody);
-    throw new Error(`Failed to fetch ads from Meta: ${adsRes.status} ${errorBody.slice(0, 200)}`);
-  }
-
-  const adsJson = (await adsRes.json()) as { data?: MetaAdCreative[] };
-  const ads = adsJson.data ?? [];
-  console.log(`[DEBUG] Ads returned: ${ads.length}. First 3 IDs: ${ads.slice(0, 3).map(a => a.id).join(', ')}`);
-
-  // Passo 2: Buscar métricas de todos os ads
+  // Passo 1: Buscar insights primeiro (já filtra ads com spend)
   const insightsParams = new URLSearchParams({
     access_token: accessToken,
     fields:
@@ -306,93 +283,91 @@ export async function getClassifiedAdsForAccount(params: {
   });
 
   const insightsRes = await fetch(
-    `${META_GRAPH_BASE}/${encodeURIComponent(
-      accountId,
-    )}/insights?${insightsParams.toString()}`,
+    `${META_GRAPH_BASE}/${encodeURIComponent(accountId)}/insights?${insightsParams.toString()}`,
     { method: "GET" },
   );
 
   if (!insightsRes.ok) {
     const errorBody = await insightsRes.text();
     console.error("Meta insights API error:", insightsRes.status, errorBody);
-    throw new Error(`Failed to fetch insights from Meta: ${insightsRes.status} ${errorBody.slice(0, 200)}`);
+    throw new Error(`Failed to fetch insights: ${insightsRes.status} ${errorBody.slice(0, 200)}`);
   }
 
   const insightsJson = (await insightsRes.json()) as { data?: MetaAdInsight[] };
   const insights = insightsJson.data ?? [];
-  console.log(`[DEBUG] Insights returned: ${insights.length}. First 3: ${JSON.stringify(insights.slice(0, 3).map(i => ({ ad_id: i.ad_id, spend: i.spend })))}`);
-  console.log(`[DEBUG] Ads IDs: ${ads.slice(0, 5).map(a => a.id).join(', ')}`);
-  console.log(`[DEBUG] Insight ad_ids: ${insights.slice(0, 5).map(i => i.ad_id).join(', ')}`);
+  console.log(`[DEBUG] Insights returned: ${insights.length}`);
 
-  const insightsByAdId = new Map<string, MetaAdInsight>();
-  insights.forEach((insight) => {
-    insightsByAdId.set(insight.ad_id, insight);
+  if (insights.length === 0) return [];
+
+  // Passo 2: Buscar detalhes dos ads que têm spend (batch por ID)
+  const adIds = insights.map((i) => i.ad_id);
+  const adsParams = new URLSearchParams({
+    access_token: accessToken,
+    ids: adIds.join(","),
+    fields: "id,name,status,effective_status,creative{id,video_id,image_url,thumbnail_url}",
   });
 
-  // Merge ads with insights, apply spend > 0 and boosted post filter
+  const adsRes = await fetch(
+    `${META_GRAPH_BASE}/?${adsParams.toString()}`,
+    { method: "GET" },
+  );
+
+  let adsById: Record<string, MetaAdCreative> = {};
+  if (adsRes.ok) {
+    adsById = (await adsRes.json()) as Record<string, MetaAdCreative>;
+    console.log(`[DEBUG] Ad details fetched: ${Object.keys(adsById).length}`);
+  } else {
+    console.error("Meta ads batch error:", adsRes.status, await adsRes.text());
+  }
+
+  // Merge
   const merged: ClassifiedAd[] = [];
 
-  for (const ad of ads) {
-    const insight = insightsByAdId.get(ad.id);
-    if (!insight) continue;
-
+  for (const insight of insights) {
     const spend = parseFloat(insight.spend ?? "0");
     if (!Number.isFinite(spend) || spend <= 0) continue;
 
-    if (isBoostedPost(ad.creative)) continue;
+    const ad = adsById[insight.ad_id];
 
     const purchases = getPurchases(insight.actions);
     const cpa = purchases > 0 ? spend / purchases : null;
-    const ctr = insight.ctr ? parseFloat(insight.ctr) : null;
 
-    let roas: number | null = null;
-    if (insight.action_values && insight.action_values.length > 0) {
-      const purchaseValue = insight.action_values.find(
-        (a) => a.action_type === "purchase",
-      );
-      if (purchaseValue) {
-        const value = parseFloat(purchaseValue.value);
-        if (Number.isFinite(value) && spend > 0) {
-          roas = value / spend;
-        }
+    let videoId: string | null = null;
+    let thumbnailUrl: string | null = null;
+    let isVideo = false;
+    let status = "UNKNOWN";
+    let name = insight.ad_name ?? insight.ad_id;
+
+    if (ad) {
+      name = ad.name ?? name;
+      status = ad.effective_status ?? ad.status ?? status;
+      if (ad.creative) {
+        videoId = ad.creative.video_id ?? null;
+        thumbnailUrl = ad.creative.image_url ?? ad.creative.thumbnail_url ?? null;
+        isVideo = !!videoId;
       }
     }
 
-    const creativeVideoId =
-      ad.creative.video_id ??
-      (ad.creative.object_story_spec as { video_data?: { video_id?: string } } | undefined)
-        ?.video_data?.video_id;
-
-    const isVideo =
-      !!creativeVideoId || !!ad.creative.object_story_spec?.video_data;
-
-    const thumbnailUrl =
-      ad.creative.image_url ??
-      ad.creative.thumbnail_url ??
-      null;
-
     merged.push({
-      id: ad.id,
-      name: ad.name,
+      id: insight.ad_id,
+      name,
       type: isVideo ? "video" : "image",
-      videoId: creativeVideoId ?? null,
-      status: ad.effective_status ?? ad.status,
+      videoId,
+      status,
       spend,
       purchases,
       cpa,
-      ctr,
-      roas,
-      verdict: "SEM_DADOS", // will be filled after computing account averages
+      ctr: null,
+      roas: null,
+      verdict: "SEM_DADOS",
       thumbnailUrl,
     });
   }
 
-  if (merged.length === 0) {
-    return [];
-  }
+  if (merged.length === 0) return [];
 
-  const totalSpend = merged.reduce((sum, ad) => sum + ad.spend, 0);
-  const totalPurchases = merged.reduce((sum, ad) => sum + ad.purchases, 0);
+  const totalSpend = merged.reduce((sum, a) => sum + a.spend, 0);
+  const totalPurchases = merged.reduce((sum, a) => sum + a.purchases, 0);
   const accountAverageCpa =
     totalPurchases > 0 && totalSpend > 0 ? totalSpend / totalPurchases : null;
 
